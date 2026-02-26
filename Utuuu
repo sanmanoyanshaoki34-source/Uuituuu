@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>無自覚うつ・セルフチェック</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;600&family=Zen+Kaku+Gothic+New:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f14;
+    --surface: #16161f;
+    --card: #1c1c28;
+    --border: #2a2a3a;
+    --accent: #7c6af7;
+    --accent2: #a78bfa;
+    --warm: #f9a8d4;
+    --text: #e8e8f0;
+    --text-muted: #8888aa;
+    --yes: #7c6af7;
+    --some: #60a5fa;
+    --no: #374151;
+  }
+
+- { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+background: var(–bg);
+color: var(–text);
+font-family: ‘Zen Kaku Gothic New’, sans-serif;
+min-height: 100vh;
+display: flex;
+flex-direction: column;
+align-items: center;
+padding: 40px 20px 80px;
+position: relative;
+overflow-x: hidden;
+}
+
+body::before {
+content: ‘’;
+position: fixed;
+inset: 0;
+background:
+radial-gradient(ellipse 80% 50% at 20% 10%, rgba(124,106,247,0.12) 0%, transparent 60%),
+radial-gradient(ellipse 60% 60% at 80% 80%, rgba(167,139,250,0.08) 0%, transparent 60%);
+pointer-events: none;
+z-index: 0;
+}
+
+.container {
+max-width: 680px;
+width: 100%;
+position: relative;
+z-index: 1;
+}
+
+/* HEADER */
+.header {
+text-align: center;
+margin-bottom: 48px;
+animation: fadeUp 0.8s ease both;
+}
+
+.badge {
+display: inline-block;
+background: linear-gradient(135deg, rgba(124,106,247,0.2), rgba(167,139,250,0.1));
+border: 1px solid rgba(124,106,247,0.4);
+color: var(–accent2);
+font-size: 11px;
+letter-spacing: 3px;
+padding: 6px 16px;
+border-radius: 20px;
+margin-bottom: 20px;
+font-family: ‘Noto Serif JP’, serif;
+}
+
+h1 {
+font-family: ‘Noto Serif JP’, serif;
+font-weight: 300;
+font-size: clamp(22px, 5vw, 30px);
+line-height: 1.6;
+color: var(–text);
+margin-bottom: 12px;
+}
+
+.subtitle {
+color: var(–text-muted);
+font-size: 14px;
+line-height: 1.8;
+}
+
+/* PROGRESS */
+.progress-wrap {
+margin-bottom: 32px;
+animation: fadeUp 0.8s 0.1s ease both;
+}
+
+.progress-info {
+display: flex;
+justify-content: space-between;
+font-size: 12px;
+color: var(–text-muted);
+margin-bottom: 10px;
+letter-spacing: 1px;
+}
+
+.progress-bar {
+height: 3px;
+background: var(–border);
+border-radius: 2px;
+overflow: hidden;
+}
+
+.progress-fill {
+height: 100%;
+background: linear-gradient(90deg, var(–accent), var(–accent2));
+border-radius: 2px;
+transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* QUESTION CARD */
+.question-card {
+background: var(–card);
+border: 1px solid var(–border);
+border-radius: 20px;
+padding: 40px 36px;
+margin-bottom: 24px;
+position: relative;
+overflow: hidden;
+animation: fadeUp 0.6s ease both;
+}
+
+.question-card::before {
+content: ‘’;
+position: absolute;
+top: 0; left: 0; right: 0;
+height: 2px;
+background: linear-gradient(90deg, var(–accent), var(–accent2), transparent);
+opacity: 0.6;
+}
+
+.question-number {
+font-size: 11px;
+letter-spacing: 2px;
+color: var(–accent2);
+margin-bottom: 16px;
+font-family: ‘Noto Serif JP’, serif;
+}
+
+.question-text {
+font-size: clamp(15px, 3vw, 17px);
+line-height: 1.9;
+color: var(–text);
+margin-bottom: 32px;
+font-weight: 400;
+}
+
+/* OPTIONS */
+.options {
+display: flex;
+flex-direction: column;
+gap: 10px;
+}
+
+.option-btn {
+display: flex;
+align-items: center;
+gap: 14px;
+padding: 16px 20px;
+background: var(–surface);
+border: 1.5px solid var(–border);
+border-radius: 12px;
+cursor: pointer;
+transition: all 0.25s ease;
+text-align: left;
+color: var(–text);
+font-family: ‘Zen Kaku Gothic New’, sans-serif;
+font-size: 14px;
+position: relative;
+overflow: hidden;
+}
+
+.option-btn:hover {
+border-color: var(–accent);
+background: rgba(124,106,247,0.08);
+transform: translateX(4px);
+}
+
+.option-btn.selected-yes {
+border-color: var(–yes);
+background: rgba(124,106,247,0.15);
+color: var(–text);
+}
+
+.option-btn.selected-some {
+border-color: var(–some);
+background: rgba(96,165,250,0.12);
+}
+
+.option-btn.selected-no {
+border-color: #4b5563;
+background: rgba(75,85,99,0.2);
+color: var(–text-muted);
+}
+
+.option-dot {
+width: 10px;
+height: 10px;
+border-radius: 50%;
+border: 2px solid currentColor;
+flex-shrink: 0;
+transition: all 0.25s;
+}
+
+.option-btn.selected-yes .option-dot {
+background: var(–yes);
+border-color: var(–yes);
+box-shadow: 0 0 12px rgba(124,106,247,0.6);
+}
+
+.option-btn.selected-some .option-dot {
+background: var(–some);
+border-color: var(–some);
+box-shadow: 0 0 12px rgba(96,165,250,0.6);
+}
+
+.option-btn.selected-no .option-dot {
+background: #4b5563;
+border-color: #4b5563;
+}
+
+.score-badge {
+margin-left: auto;
+font-size: 11px;
+color: var(–text-muted);
+flex-shrink: 0;
+}
+
+/* NAVIGATION */
+.nav {
+display: flex;
+justify-content: space-between;
+align-items: center;
+gap: 12px;
+}
+
+.btn {
+padding: 14px 32px;
+border-radius: 12px;
+border: none;
+font-family: ‘Zen Kaku Gothic New’, sans-serif;
+font-size: 14px;
+cursor: pointer;
+transition: all 0.25s;
+letter-spacing: 0.5px;
+}
+
+.btn-back {
+background: transparent;
+border: 1.5px solid var(–border);
+color: var(–text-muted);
+}
+
+.btn-back:hover {
+border-color: var(–text-muted);
+color: var(–text);
+}
+
+.btn-next {
+background: linear-gradient(135deg, var(–accent), var(–accent2));
+color: white;
+font-weight: 700;
+flex: 1;
+max-width: 200px;
+opacity: 0.4;
+pointer-events: none;
+transition: all 0.3s;
+}
+
+.btn-next.active {
+opacity: 1;
+pointer-events: all;
+box-shadow: 0 8px 32px rgba(124,106,247,0.35);
+}
+
+.btn-next.active:hover {
+transform: translateY(-2px);
+box-shadow: 0 12px 40px rgba(124,106,247,0.5);
+}
+
+/* RESULT */
+.result-card {
+background: var(–card);
+border: 1px solid var(–border);
+border-radius: 24px;
+padding: 48px 40px;
+text-align: center;
+position: relative;
+overflow: hidden;
+animation: fadeUp 0.8s ease both;
+}
+
+.result-ring {
+width: 120px;
+height: 120px;
+margin: 0 auto 32px;
+position: relative;
+}
+
+.result-ring svg {
+transform: rotate(-90deg);
+}
+
+.result-score-display {
+position: absolute;
+inset: 0;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+}
+
+.result-number {
+font-family: ‘Noto Serif JP’, serif;
+font-size: 32px;
+font-weight: 300;
+line-height: 1;
+}
+
+.result-label-small {
+font-size: 11px;
+color: var(–text-muted);
+margin-top: 4px;
+letter-spacing: 1px;
+}
+
+.result-level {
+font-family: ‘Noto Serif JP’, serif;
+font-size: 20px;
+font-weight: 300;
+margin-bottom: 16px;
+line-height: 1.6;
+}
+
+.result-message {
+color: var(–text-muted);
+font-size: 14px;
+line-height: 2;
+max-width: 480px;
+margin: 0 auto 36px;
+}
+
+.result-items {
+display: flex;
+flex-direction: column;
+gap: 8px;
+margin-bottom: 36px;
+text-align: left;
+}
+
+.result-item-row {
+display: flex;
+justify-content: space-between;
+align-items: center;
+padding: 10px 16px;
+background: var(–surface);
+border-radius: 10px;
+font-size: 13px;
+color: var(–text-muted);
+}
+
+.result-item-q {
+flex: 1;
+margin-right: 12px;
+line-height: 1.5;
+}
+
+.result-item-score {
+font-weight: 700;
+font-size: 14px;
+flex-shrink: 0;
+}
+
+.score-3 { color: var(–yes); }
+.score-1 { color: var(–some); }
+.score-0 { color: #4b5563; }
+
+.btn-retry {
+background: transparent;
+border: 1.5px solid var(–border);
+color: var(–text-muted);
+padding: 12px 28px;
+border-radius: 12px;
+font-family: ‘Zen Kaku Gothic New’, sans-serif;
+font-size: 14px;
+cursor: pointer;
+transition: all 0.25s;
+}
+
+.btn-retry:hover {
+border-color: var(–accent);
+color: var(–accent2);
+}
+
+/* color themes per level */
+.level-0 { color: #34d399; }
+.level-1 { color: var(–some); }
+.level-2 { color: #fb923c; }
+.level-3 { color: #f87171; }
+
+/* start screen */
+.start-card {
+background: var(–card);
+border: 1px solid var(–border);
+border-radius: 24px;
+padding: 48px 40px;
+text-align: center;
+animation: fadeUp 0.8s ease both;
+}
+
+.start-icon {
+font-size: 48px;
+margin-bottom: 24px;
+}
+
+.start-note {
+color: var(–text-muted);
+font-size: 13px;
+line-height: 2;
+margin-bottom: 32px;
+}
+
+.btn-start {
+background: linear-gradient(135deg, var(–accent), var(–accent2));
+color: white;
+padding: 16px 48px;
+border-radius: 14px;
+border: none;
+font-family: ‘Zen Kaku Gothic New’, sans-serif;
+font-size: 16px;
+font-weight: 700;
+cursor: pointer;
+box-shadow: 0 8px 32px rgba(124,106,247,0.35);
+transition: all 0.3s;
+letter-spacing: 1px;
+}
+
+.btn-start:hover {
+transform: translateY(-2px);
+box-shadow: 0 14px 40px rgba(124,106,247,0.5);
+}
+
+/* Animations */
+@keyframes fadeUp {
+from { opacity: 0; transform: translateY(24px); }
+to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideOut {
+to { opacity: 0; transform: translateX(-30px); }
+}
+
+@keyframes slideIn {
+from { opacity: 0; transform: translateX(30px); }
+to { opacity: 1; transform: translateX(0); }
+}
+
+.slide-in { animation: slideIn 0.4s ease both; }
+
+.divider {
+width: 40px;
+height: 1px;
+background: var(–border);
+margin: 24px auto;
+}
+</style>
+
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="badge">MENTAL HEALTH CHECK</div>
+    <h1>無自覚うつ・セルフチェック</h1>
+    <p class="subtitle">最近の自分を振り返って、直感で選んでください。<br>全10問・約2分</p>
+  </div>
+  <div id="app"></div>
+</div>
+
+<script>
+const questions = [
+  "「楽しみだった趣味」が、今は「やらなきゃいけない用事」に感じる。",
+  "友達からの誘いに、返事をするのが後回しになっている。",
+  "お風呂に入る、ゴミを出すといった「当たり前のこと」が、すごく重労働に感じる。",
+  "動画やSNSを見ていても、内容が全然頭に入ってこない。",
+  "しっかり寝たはずなのに、起きた瞬間から「体が重い」と感じる。",
+  "ちょっとしたミスで、「自分はなんてダメなんだ」と自分を責め続けてしまう。",
+  "お腹は空くけれど、「何を食べたいか」がさっぱり思いつかない。",
+  "外では笑顔でいられるけれど、一人になると急にドッと疲れが出る。",
+  "今日着る服や、今日食べるものなど、小さな決断をするのがしんどい。",
+  "1ヶ月後の自分が、元気に笑っている姿がイメージしづらい。"
+];
+
+const options = [
+  { label: "あてはまる", score: 3, cls: "selected-yes" },
+  { label: "たまにある", score: 1, cls: "selected-some" },
+  { label: "ない", score: 0, cls: "selected-no" }
+];
+
+const levels = [
+  { min: 0, max: 5, color: "level-0", title: "心の体力は十分です", message: "今のところ心配はなさそうです。たまには自分を甘やかしてあげてくださいね。", ring: "#34d399" },
+  { min: 6, max: 15, color: "level-1", title: "心が「お疲れモード」です", message: "無意識に無理を重ねているかもしれません。スマホを置いて、ぼーっとする時間を作りましょう。", ring: "#60a5fa" },
+  { min: 16, max: 23, color: "level-2", title: "心が「ガス欠」に近い状態です", message: "「まだ大丈夫」と思っていませんか？ 信頼できる人に相談するか、心療内科などで一度お話ししてみるのも一つの手です。", ring: "#fb923c" },
+  { min: 24, max: 30, color: "level-3", title: "今すぐ「心の休息」が必要です", message: "かなり限界まで頑張ってこられたはずです。まずはしっかり休むことを最優先にしてください。", ring: "#f87171" }
+];
+
+let state = { screen: 'start', current: 0, answers: new Array(10).fill(null) };
+
+function getLevel(score) {
+  return levels.find(l => score >= l.min && score <= l.max);
+}
+
+function render() {
+  const app = document.getElementById('app');
+  if (state.screen === 'start') {
+    app.innerHTML = `
+      <div class="start-card">
+        <div class="start-icon">🌙</div>
+        <div style="font-family:'Noto Serif JP',serif;font-size:16px;margin-bottom:16px;color:var(--text);">あなたの心は、今どんな状態ですか？</div>
+        <p class="start-note">
+          10個の質問に答えるだけで、<br>
+          気づきにくい心のサインをチェックできます。<br>
+          正直な直感で選んでください。
+        </p>
+        <button class="btn-start" onclick="startQuiz()">チェックをはじめる</button>
+      </div>
+    `;
+  } else if (state.screen === 'quiz') {
+    const q = state.current;
+    const progress = ((q) / questions.length) * 100;
+    const answered = state.answers[q] !== null;
+    app.innerHTML = `
+      <div class="progress-wrap">
+        <div class="progress-info">
+          <span>質問 ${q + 1} / ${questions.length}</span>
+          <span>${Math.round(progress)}%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
+      </div>
+      <div class="question-card slide-in">
+        <div class="question-number">Q${String(q + 1).padStart(2,'0')}</div>
+        <p class="question-text">${questions[q]}</p>
+        <div class="options">
+          ${options.map((opt, i) => `
+            <button class="option-btn ${state.answers[q] === i ? opt.cls : ''}" onclick="selectAnswer(${i})">
+              <span class="option-dot"></span>
+              <span>${opt.label}</span>
+              <span class="score-badge">${opt.score > 0 ? '+' + opt.score : '±0'}</span>
+            </button>
+          `).join('')}
+        </div>
+      </div>
+      <div class="nav">
+        ${q > 0 ? `<button class="btn btn-back" onclick="goBack()">← 戻る</button>` : `<div></div>`}
+        <button class="btn btn-next ${answered ? 'active' : ''}" onclick="goNext()">
+          ${q === questions.length - 1 ? '結果を見る →' : '次の質問 →'}
+        </button>
+      </div>
+    `;
+  } else if (state.screen === 'result') {
+    const totalScore = state.answers.reduce((sum, a) => sum + (a !== null ? options[a].score : 0), 0);
+    const level = getLevel(totalScore);
+    const pct = (totalScore / 30) * 100;
+    const circumference = 2 * Math.PI * 48;
+    const dash = circumference * (pct / 100);
+
+    app.innerHTML = `
+      <div class="result-card">
+        <div class="result-ring">
+          <svg width="120" height="120" viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="48" fill="none" stroke="var(--border)" stroke-width="6"/>
+            <circle cx="60" cy="60" r="48" fill="none" stroke="${level.ring}" stroke-width="6"
+              stroke-dasharray="${dash} ${circumference}" stroke-linecap="round"
+              style="transition:stroke-dasharray 1s ease"/>
+          </svg>
+          <div class="result-score-display">
+            <span class="result-number ${level.color}">${totalScore}</span>
+            <span class="result-label-small">/ 30点</span>
+          </div>
+        </div>
+        <div class="result-level ${level.color}">${level.title}</div>
+        <p class="result-message">${level.message}</p>
+        <div class="divider"></div>
+        <div class="result-items">
+          ${questions.map((q, i) => {
+            const a = state.answers[i];
+            const sc = a !== null ? options[a].score : 0;
+            const scCls = sc === 3 ? 'score-3' : sc === 1 ? 'score-1' : 'score-0';
+            const label = a !== null ? options[a].label : '未回答';
+            return `<div class="result-item-row">
+              <span class="result-item-q">Q${i+1}. ${q.length > 22 ? q.slice(0,22)+'…' : q}</span>
+              <span class="${scCls} result-item-score">${label}（${sc > 0 ? '+' + sc : '±0'}）</span>
+            </div>`;
+          }).join('')}
+        </div>
+        <button class="btn-retry" onclick="retryQuiz()">もう一度チェックする</button>
+      </div>
+    `;
+  }
+}
+
+function startQuiz() {
+  state = { screen: 'quiz', current: 0, answers: new Array(10).fill(null) };
+  render();
+}
+
+function selectAnswer(i) {
+  state.answers[state.current] = i;
+  render();
+}
+
+function goNext() {
+  if (state.answers[state.current] === null) return;
+  if (state.current === questions.length - 1) {
+    state.screen = 'result';
+  } else {
+    state.current++;
+  }
+  render();
+}
+
+function goBack() {
+  if (state.current > 0) {
+    state.current--;
+    render();
+  }
+}
+
+function retryQuiz() {
+  state = { screen: 'start', current: 0, answers: new Array(10).fill(null) };
+  render();
+}
+
+render();
+</script>
+
+</body>
+</html>
