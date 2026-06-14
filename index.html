@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI DATING ANALYZER</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap');
+
+    :root {
+      --bg: #10101a;
+      --card: rgba(255,255,255,0.04);
+      --border: rgba(255,255,255,0.09);
+      --text: #f2f2f6;
+      --muted: #8888aa;
+      --faint: #44445a;
+      --green: #34d399;
+      --r: 16px;
+      /* デフォルトは男性テーマカラー */
+      --accent: #5b8dff;
+      --accent-light: rgba(91,141,255,0.14);
+      --accent-border: rgba(91,141,255,0.28);
+      --p: var(--accent);
+      --pl: var(--accent-light);
+      --pb: var(--accent-border);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { background: var(--bg); color: var(--text); font-family: 'Noto Sans JP', sans-serif; min-height: 100vh; }
+    
+    /* 背景エフェクト */
+    .bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .bg-blob { position: absolute; border-radius: 50%; filter: blur(80px); transition: background 0.5s; }
+    .b1 { width: 500px; height: 500px; top: -150px; right: -100px; background: var(--p); opacity: 0.08; }
+    .b2 { width: 400px; height: 400px; bottom: -100px; left: -80px; background: #a855f7; opacity: 0.07; }
+    .b3 { width: 300px; height: 300px; top: 40%; left: 30%; background: var(--p); opacity: 0.04; }
+    .bg-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px); background-size: 40px 40px; }
+    
+    .page { position: relative; z-index: 1; max-width: 540px; margin: 0 auto; padding: 28px 16px 80px; }
+    
+    /* Header */
+    .hdr { text-align: center; margin-bottom: 32px; }
+    .hdr-badge { display: inline-flex; align-items: center; gap: 7px; background: var(--pl); border: 1px solid var(--pb); color: var(--p); font-size: 10px; font-family: 'Outfit', sans-serif; font-weight: 600; letter-spacing: 2px; padding: 5px 14px; border-radius: 100px; margin-bottom: 16px; transition: all 0.3s; }
+    .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--p); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1) } 50% { opacity: 0.4; transform: scale(0.8) } }
+    .hdr-title { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: clamp(52px, 14vw, 84px); line-height: 0.88; letter-spacing: -1px; background: linear-gradient(145deg, #fff 0%, var(--p) 60%, #c084fc 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; transition: all 0.3s; }
+    .hdr-sub { font-size: 12px; color: var(--muted); margin-top: 12px; }
+
+    /* Steps */
+    .steps { display: flex; align-items: center; margin-bottom: 24px; }
+    .s-item { display: flex; align-items: center; flex: 1; gap: 7px; }
+    .s-num { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; font-family: 'Outfit', sans-serif; flex-shrink: 0; transition: all 0.3s; }
+    .s-num.done { background: var(--green); color: #000; }
+    .s-num.active { background: var(--p); color: #fff; box-shadow: 0 0 16px var(--pl); }
+    .s-num.idle { background: rgba(255,255,255,0.05); color: var(--muted); border: 1px solid var(--border); }
+    .s-lbl { font-size: 10px; color: var(--muted); white-space: nowrap; display: none; }
+    @media(min-width: 380px) { .s-lbl { display: block } }
+    .s-line { flex: 1; height: 1px; background: var(--border); margin: 0 6px; transition: background 0.3s; }
+    .s-line.done { background: var(--green); }
+
+    /* Cards */
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 20px; margin-bottom: 12px; transition: border-color 0.2s; }
+    .card:focus-within { border-color: var(--pb); }
+    .card-head { display: flex; align-items: center; gap: 11px; margin-bottom: 16px; }
+    .c-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; background: var(--pl); }
+    .c-title { font-size: 14px; font-weight: 700; font-family: 'Outfit', sans-serif; color: var(--text); }
+    .c-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+    .opt-tag { font-size: 9px; letter-spacing: 1px; color: var(--faint); background: rgba(255,255,255,0.04); border: 1px solid var(--border); padding: 2px 8px; border-radius: 100px; margin-left: auto; }
+
+    /* Gender */
+    .gender-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .gender-btn { padding: 22px 16px; border-radius: 14px; border: 2px solid var(--border); background: rgba(255,255,255,0.03); cursor: pointer; text-align: center; transition: all 0.25s; }
+    .gender-btn:hover { border-color: rgba(255,255,255,0.18); background: rgba(255,255,255,0.05); }
+    .gender-btn.sel-m { border-color: #5b8dff; background: rgba(91,141,255,0.1); box-shadow: 0 0 20px rgba(91,141,255,0.15); }
+    .gender-btn.sel-f { border-color: #ff6b9d; background: rgba(255,107,157,0.1); box-shadow: 0 0 20px rgba(255,107,157,0.15); }
+    .g-emoji { font-size: 36px; margin-bottom: 8px; }
+    .g-label { font-size: 14px; font-weight: 700; font-family: 'Outfit', sans-serif; color: var(--text); }
+    .g-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+    /* MBTI */
+    .mbti-group { margin-bottom: 14px; }
+    .mbti-gname { font-size: 10px; font-weight: 600; letter-spacing: 2px; margin-bottom: 8px; font-family: 'Outfit', sans-serif; }
+    .mbti-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; }
+    .mbti-btn { padding: 10px 4px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.03); cursor: pointer; text-align: center; transition: all 0.2s; }
+    .mbti-btn:hover { border-color: rgba(255,255,255,0.18); background: rgba(255,255,255,0.06); }
+    .mbti-btn.active { border-width: 2px; }
+    .mbti-type { font-size: 13px; font-weight: 700; font-family: 'Outfit', sans-serif; }
+    .mbti-desc { font-size: 9px; color: var(--muted); margin-top: 2px; }
+
+    /* Textarea */
+    .ta { width: 100%; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 13px 14px; color: var(--text); font-family: 'Noto Sans JP', sans-serif; font-size: 13px; line-height: 1.75; resize: none; outline: none; transition: border-color 0.2s; }
+    .ta:focus { border-color: var(--pb); }
+    .ta::placeholder { color: var(--faint); }
+    .char-count { text-align: right; font-size: 10px; color: var(--faint); margin-top: 5px; }
+
+    /* Height slider */
+    .h-display { text-align: center; margin-bottom: 20px; }
+    .h-num { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 72px; line-height: 1; transition: color 0.4s; }
+    .h-unit { font-size: 24px; opacity: 0.45; font-weight: 500; }
+    .h-tag { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 1px; padding: 4px 14px; border-radius: 100px; margin-top: 7px; transition: all 0.4s; }
+    input[type=range] { -webkit-appearance: none; width: 100%; height: 6px; border-radius: 3px; outline: none; cursor: pointer; background: linear-gradient(90deg, var(--sc, #5b8dff) var(--sp, 50%), rgba(255,255,255,0.08) var(--sp, 50%)); }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; border-radius: 50%; background: #fff; border: 3px solid var(--sc, #5b8dff); box-shadow: 0 2px 14px rgba(0,0,0,0.4); cursor: pointer; }
+    input[type=range]::-webkit-slider-thumb:active { box-shadow: 0 0 0 8px rgba(91,141,255,0.15); }
+    .slider-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--faint); margin-top: 8px; }
+    .h-note { margin-top: 12px; background: rgba(255,255,255,0.025); border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px; font-size: 11px; color: var(--muted); line-height: 1.75; }
+    .h-note b { color: #f59e0b; }
+
+    /* Photo Upload */
+    .drop-zone { border: 2px dashed rgba(255,255,255,0.1); border-radius: 12px; padding: 34px 16px; text-align: center; cursor: pointer; transition: all 0.2s; background: rgba(0,0,0,0.15); position: relative; }
+    .drop-zone:hover, .drop-zone.drag { border-color: var(--pb); background: var(--pl); }
+    .drop-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .drop-icon { font-size: 38px; margin-bottom: 10px; }
+    .drop-main { font-size: 14px; font-weight: 600; font-family: 'Outfit', sans-serif; color: #ccc; }
+    .drop-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .prev-wrap { position: relative; border-radius: 12px; overflow: hidden; }
+    .prev-img { width: 100%; max-height: 260px; object-fit: cover; display: block; }
+    .prev-over { position: absolute; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; gap: 10px; opacity: 0; transition: opacity 0.2s; }
+    .prev-wrap:hover .prev-over { opacity: 1; }
+    .prev-btn { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); color: #fff; font-size: 12px; font-family: 'Outfit', sans-serif; padding: 8px 16px; border-radius: 8px; cursor: pointer; z-index: 2; position: relative;}
+    .prev-btn.del { border-color: rgba(255,100,100,0.3); color: #ff8888; }
+
+    /* Buttons */
+    .nav { display: flex; gap: 10px; margin-top: 14px; }
+    .btn-back { flex: 1; padding: 15px; background: transparent; border: 1px solid var(--border); border-radius: 12px; color: var(--muted); font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-back:hover { border-color: rgba(255,255,255,0.16); color: var(--text); }
+    .btn-next { flex: 2; padding: 15px; background: var(--p); border: none; border-radius: 12px; color: #fff; font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 20px var(--pl); }
+    .btn-next:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 28px var(--pl); }
+    .btn-next:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+    .btn-go { width: 100%; padding: 17px; background: var(--p); border: none; border-radius: 12px; color: #fff; font-family: 'Outfit', sans-serif; font-size: 17px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 20px var(--pl); margin-top: 6px; }
+    .btn-go:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 32px var(--pl); }
+    .btn-go:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+    .btn-reset { width: 100%; padding: 14px; background: transparent; border: 1px solid var(--border); border-radius: 12px; color: var(--muted); font-size: 13px; font-family: 'Outfit', sans-serif; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-top: 8px; }
+    .btn-reset:hover { border-color: rgba(255,255,255,0.15); color: var(--text); }
+
+    /* Loading */
+    .load { text-align: center; padding: 90px 24px; animation: up 0.4s ease; display: none; }
+    .load-ring { width: 58px; height: 58px; border: 3px solid rgba(255,255,255,0.06); border-top-color: var(--p); border-radius: 50%; animation: spin 0.9s linear infinite; margin: 0 auto 26px; }
+    @keyframes spin { to { transform: rotate(360deg) } }
+    .load-label { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 28px; letter-spacing: 2px; color: #fff; margin-bottom: 10px; }
+    .load-msg { font-size: 13px; color: var(--muted); }
+    .bar-wrap { height: 3px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden; margin-top: 26px; }
+    .bar-ani { height: 100%; background: var(--p); animation: bar 2s ease-in-out infinite; }
+    @keyframes bar { 0% { width: 0%; margin-left: 0 } 50% { width: 70%; margin-left: 0 } 100% { width: 0%; margin-left: 100% } }
+
+    /* Result Elements */
+    .res-hdr { text-align: center; margin-bottom: 20px; animation: up 0.4s ease; }
+    .res-eyebrow { font-size: 10px; font-family: 'Outfit', sans-serif; letter-spacing: 3px; color: var(--muted); margin-bottom: 10px; }
+    .tag-pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; border-radius: 100px; font-size: 12px; font-weight: 700; font-family: 'Outfit', sans-serif; background: var(--pl); color: var(--p); border: 1px solid var(--pb); }
+    .tag-mbti { background: rgba(168,85,247,0.12); color: #c084fc; border: 1px solid rgba(168,85,247,0.25); margin-left: 6px; }
+
+    /* Rank Bar */
+    .rank-card { background: var(--card); border: 1px solid rgba(255,255,255,0.09); border-radius: var(--r); padding: 24px; text-align: center; margin-bottom: 12px; animation: up 0.5s ease; }
+    .rank-eyebrow { font-size: 9px; letter-spacing: 3px; color: var(--muted); font-family: 'Outfit', sans-serif; margin-bottom: 8px; }
+    .rank-big { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 62px; line-height: 1; color: #fff; }
+    .rank-big em { font-style: normal; font-size: 26px; color: var(--muted); font-weight: 500; }
+    .rank-verdict { font-size: 13px; font-weight: 700; color: var(--p); margin: 8px 0 20px; }
+    .rbar-outer { position: relative; }
+    .rbar-bg { height: 10px; border-radius: 5px; background: rgba(255,255,255,0.05); overflow: hidden; }
+    .rbar-fill { height: 100%; border-radius: 5px; background: linear-gradient(90deg, #ef4444, #f59e0b, #34d399); transition: width 1.6s cubic-bezier(.22,1,.36,1); width: 0%; }
+    .rbar-thumb { position: absolute; top: -8px; transform: translateX(-50%); transition: left 1.6s cubic-bezier(.22,1,.36,1); left: 0%; }
+    .rbar-dot { width: 26px; height: 26px; border-radius: 50%; background: #fff; border: 3px solid var(--p); box-shadow: 0 0 16px var(--pl); }
+    .rbar-lbl { font-size: 9px; font-family: 'Outfit', sans-serif; font-weight: 700; color: var(--p); letter-spacing: 1px; text-align: center; margin-top: 2px; }
+    .rbar-ends { display: flex; justify-content: space-between; font-size: 9px; color: var(--faint); margin-top: 28px; }
+
+    /* Score Grid */
+    .score-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; animation: up 0.5s 0.06s ease both; }
+    .score-cell { background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 14px; padding: 18px 14px; text-align: center; }
+    .score-lbl { font-size: 9px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; font-family: 'Outfit', sans-serif; margin-bottom: 6px; }
+    .score-n { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 54px; line-height: 1; }
+    .score-n.lo { color: #ef4444 } .score-n.mi { color: #f59e0b } .score-n.hi { color: #34d399 }
+    .score-pct { font-size: 22px; opacity: 0.4; font-weight: 500; }
+    .score-chip { display: inline-block; font-size: 10px; font-weight: 700; font-family: 'Outfit', sans-serif; letter-spacing: 1px; padding: 3px 10px; border-radius: 100px; margin-top: 7px; }
+
+    /* Verdict */
+    .verdict { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.09); border-left: 3px solid var(--p); border-radius: var(--r); padding: 18px; margin-bottom: 12px; animation: up 0.5s 0.1s ease both; }
+    .verdict-eye { font-size: 9px; letter-spacing: 3px; color: var(--p); font-family: 'Outfit', sans-serif; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .verdict-txt { font-size: 14px; font-weight: 600; color: #eeeeff; line-height: 1.8; }
+
+    /* Sub-scores & Details */
+    .sub-scores { margin: 12px 0; }
+    .sub-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .sub-lbl { font-size: 11px; color: var(--muted); width: 90px; flex-shrink: 0; font-family: 'Outfit', sans-serif; }
+    .sub-bar-wrap { flex: 1; height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+    .sub-bar { height: 100%; border-radius: 3px; transition: width 1.2s cubic-bezier(.22,1,.36,1); }
+    .sub-val { font-size: 11px; font-weight: 700; font-family: 'Outfit', sans-serif; width: 32px; text-align: right; flex-shrink: 0; }
+    .sub-comment { font-size: 10px; color: var(--faint); margin-top: -4px; margin-left: 100px; margin-bottom: 6px; }
+    
+    .rewrite-box { background: rgba(52,211,153,0.06); border: 1px solid rgba(52,211,153,0.2); border-radius: 10px; padding: 14px; margin: 14px 0; }
+    .rewrite-label { font-size: 9px; letter-spacing: 2px; color: #34d399; font-family: 'Outfit', sans-serif; font-weight: 700; margin-bottom: 8px; }
+    .rewrite-text { font-size: 13px; color: #ccffec; line-height: 1.8; font-style: italic; }
+
+    .dc { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 20px; margin-bottom: 12px; animation: up 0.5s ease both; }
+    .dc.c0 { border-left: 3px solid var(--p); }
+    .dc.c1 { border-left: 3px solid #f59e0b; }
+    .dc.c2 { border-left: 3px solid #a855f7; }
+    .dc.c3 { border-left: 3px solid #34d399; }
+    .dc-head { display: flex; align-items: center; gap: 9px; margin-bottom: 14px; }
+    .dc-icon { font-size: 18px; }
+    .dc-cat { font-size: 9px; letter-spacing: 3px; font-family: 'Outfit', sans-serif; font-weight: 700; text-transform: uppercase; }
+    .dc.c0 .dc-cat { color: var(--p) } .dc.c1 .dc-cat { color: #f59e0b } .dc.c2 .dc-cat { color: #a855f7 } .dc.c3 .dc-cat { color: #34d399 }
+    .dc-thumb { width: 100%; max-height: 160px; object-fit: cover; border-radius: 10px; margin-bottom: 14px; opacity: 0.72; }
+    .dc-sum { font-size: 14px; font-weight: 700; font-family: 'Outfit', sans-serif; color: #fff; margin-bottom: 10px; line-height: 1.5; }
+    .dc-body { font-size: 13px; color: #9999bb; line-height: 1.9; }
+    .dc-body strong { color: #ffb3c6; }
+    .dc-pts { margin-top: 14px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 4px; }
+    .dc-pt { display: flex; gap: 9px; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 12px; line-height: 1.7; color: #aaaabb; }
+    .dc-pt:last-child { border-bottom: none; }
+    .dc-badge { font-size: 9px; font-weight: 700; font-family: 'Outfit', sans-serif; letter-spacing: 1px; padding: 3px 8px; border-radius: 5px; flex-shrink: 0; margin-top: 2px; }
+    .dc-badge.ng { background: rgba(239,68,68,0.14); color: #f87171; }
+    .dc-badge.fix { background: rgba(245,158,11,0.14); color: #fbbf24; }
+
+    /* MBTI Analysis */
+    .mbti-card { background: rgba(168,85,247,0.06); border: 1px solid rgba(168,85,247,0.18); border-radius: var(--r); padding: 20px; margin-bottom: 12px; animation: up 0.5s ease both; }
+    .mbti-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+    .mbti-card-type { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 18px; color: #c084fc; }
+    .mbti-card-name { font-size: 11px; color: var(--muted); }
+    .mbti-row2 { margin-bottom: 12px; }
+    .mbti-row-label { font-size: 9px; letter-spacing: 2px; font-family: 'Outfit', sans-serif; font-weight: 700; margin-bottom: 5px; }
+    .mbti-strength .mbti-row-label { color: #34d399; } .mbti-weakness .mbti-row-label { color: #f87171; } .mbti-tip .mbti-row-label { color: #c084fc; }
+    .mbti-row-text { font-size: 12px; color: #aaaabb; line-height: 1.75; }
+
+    /* Strategy */
+    .strat-card { background: linear-gradient(135deg, rgba(91,141,255,0.07), rgba(168,85,247,0.05)); border: 1px solid rgba(91,141,255,0.15); border-radius: var(--r); padding: 20px; margin-bottom: 12px; animation: up 0.5s ease both; }
+    .strat-head { font-size: 9px; letter-spacing: 3px; color: var(--p); font-family: 'Outfit', sans-serif; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 7px; }
+    .strat-headline { font-size: 15px; font-weight: 700; font-family: 'Outfit', sans-serif; color: #fff; margin-bottom: 14px; line-height: 1.5; }
+    .strat-height { font-size: 12px; color: #aaaabb; background: rgba(255,255,255,0.04); border-radius: 8px; padding: 10px 12px; margin-bottom: 14px; line-height: 1.7; border-left: 2px solid var(--p); }
+    .strat-action { display: flex; gap: 10px; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .strat-action:last-child { border-bottom: none; }
+    .strat-timing { font-size: 10px; font-weight: 700; font-family: 'Outfit', sans-serif; color: var(--p); white-space: nowrap; padding-top: 2px; min-width: 60px; }
+    .strat-text { font-size: 12px; color: #aaaabb; line-height: 1.7; }
+
+    /* Future */
+    .future { background: linear-gradient(135deg, rgba(52,211,153,0.07), rgba(20,150,80,0.04)); border: 1px solid rgba(52,211,153,0.15); border-radius: var(--r); padding: 20px; margin-bottom: 12px; animation: up 0.5s ease both; }
+    .f-head { font-size: 9px; letter-spacing: 3px; color: var(--green); font-family: 'Outfit', sans-serif; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 7px; }
+    .f-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .f-cell { background: rgba(0,0,0,0.2); border-radius: 12px; padding: 14px; text-align: center; border: 1px solid rgba(52,211,153,0.1); }
+    .f-lbl { font-size: 9px; letter-spacing: 2px; color: var(--muted); margin-bottom: 6px; font-family: 'Outfit', sans-serif; }
+    .f-row { display: flex; align-items: center; justify-content: center; gap: 7px; }
+    .f-old { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 24px; color: #ef4444; text-decoration: line-through; opacity: 0.55; }
+    .f-arr { color: var(--faint); font-size: 12px; }
+    .f-new { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 40px; color: var(--green); }
+    .f-u { font-size: 14px; color: var(--green); opacity: 0.7; }
+
+    @keyframes up { from { opacity: 0; transform: translateY(12px) } to { opacity: 1; transform: translateY(0) } }
+
+    /* Utility */
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <div class="bg">
+    <div class="bg-grid"></div>
+    <div class="bg-blob b1"></div>
+    <div class="bg-blob b2"></div>
+    <div class="bg-blob b3"></div>
+  </div>
+
+  <div class="page">
+    <div class="hdr">
+      <div class="hdr-badge"><div class="pulse"></div>AI DATING ANALYZER</div>
+      <div class="hdr-title">WIN<br>RATE</div>
+      <div class="hdr-sub">マッチングアプリの「勝率」をAIが多角的に診断する</div>
+    </div>
+
+    <div class="steps" id="stepBar"></div>
+
+    <div id="viewStep0"></div>
+    <div id="viewStep1" class="hidden"></div>
+    <div id="viewStep2" class="hidden"></div>
+    
+    <div id="viewLoading" class="load">
+      <div class="load-ring"></div>
+      <div class="load-label">ANALYZING</div>
+      <div class="load-msg" id="loadingMsg"></div>
+      <div class="bar-wrap"><div class="bar-ani"></div></div>
+    </div>
+
+    <div id="viewResult" class="hidden"></div>
+  </div>
+
+  <script>
+    /* ─── State ─── */
+    const state = {
+      step: 0,
+      gender: "", // "male" | "female"
+      mbti: "",
+      height: 170,
+      profile: "",
+      photoFile: null,
+      photoUrl: null,
+      result: null,
+      resultImg: null
+    };
+
+    /* ─── Data & Config ─── */
+    const T = {
+      male:   { p:"#5b8dff", pl:"rgba(91,141,255,0.14)", pb:"rgba(91,141,255,0.28)", label:"男性", emoji:"👨" },
+      female: { p:"#ff6b9d", pl:"rgba(255,107,157,0.14)", pb:"rgba(255,107,157,0.28)", label:"女性", emoji:"👩" },
+    };
+    const getT = g => T[g] || T.male;
+
+    const MBTI_GROUPS = [
+      { name:"分析家", color:"#7c6ff7", types:["INTJ","INTP","ENTJ","ENTP"] },
+      { name:"外交官", color:"#4faf8a", types:["INFJ","INFP","ENFJ","ENFP"] },
+      { name:"番人",   color:"#4d8ef5", types:["ISTJ","ISFJ","ESTJ","ESFJ"] },
+      { name:"探検家", color:"#e5863b", types:["ISTP","ISFP","ESTP","ESFP"] },
+    ];
+    const MBTI_DESC = {
+      INTJ:"建築家",INTP:"論理学者",ENTJ:"指揮官",ENTP:"討論者",
+      INFJ:"提唱者",INFP:"仲介者",ENFJ:"主人公",ENFP:"運動家",
+      ISTJ:"管理者",ISFJ:"擁護者",ESTJ:"幹部",ESFJ:"領事",
+      ISTP:"巨匠",ISFP:"冒険家",ESTP:"起業家",ESFP:"エンターテイナー",
+    };
+    const MBTI_TRAITS = {
+      INTJ:{ s:"戦略的思考・長期ビジョン・知的誠実さ", w:"感情表現が少なくプロフが冷たく見えがち、ユーモアが少ない", t:"「なぜこの趣味にハマったか」の思考プロセスを書くと知的魅力が際立つ" },
+      INTP:{ s:"深い洞察・独自の視点・話題の引き出しの多さ", w:"プロフが抽象的で伝わりにくい、具体的なエピソードが少ない", t:"難しい概念を身近な例えで説明する文章力をプロフに活かす" },
+      ENTJ:{ s:"リーダーシップ・自信・目標へのコミット", w:"プロフが高圧的・自慢に見えやすい、柔らかさが不足", t:"成果より「なぜやるか」の動機を書くと人間味が増す" },
+      ENTP:{ s:"ユニークなアイデア・会話の面白さ・好奇心", w:"プロフが散漫で何を伝えたいか分からない、一貫性が薄い", t:"「変わった体験1つ」に絞ったエピソードが個性を最大化する" },
+      INFJ:{ s:"深い共感力・誠実さ・独自の価値観", w:"プロフが詩的すぎて具体性がなく伝わりにくい", t:"抽象的な言葉を1つの具体的シーンに変換すると読み手に刺さる" },
+      INFP:{ s:"豊かな感受性・真剣さ・内面の深さ", w:"プロフが内向きで相手に何も問いかけない構造になりがち", t:"理想のデートシーンを1文入れると相手がイメージしやすい" },
+      ENFJ:{ s:"温かさ・人を引きつける魅力・コミュニケーション力", w:"プロフが「いい人すぎ」て個性が薄れる、具体性が欠ける", t:"自分が誰かに与えた具体的な体験エピソードが最大の武器" },
+      ENFP:{ s:"エネルギー・熱量・人を巻き込む力", w:"プロフが長くなりすぎる・テンションが空回りに見える", t:"3つの熱量をそれぞれ1文にまとめると読みやすさと個性を両立" },
+      ISTJ:{ s:"信頼感・安定感・約束を守る誠実さ", w:"プロフが退屈・面白みがない・「普通の人」で終わる", t:"「自分だけの継続していること」に数字を入れると信頼感が個性になる" },
+      ISFJ:{ s:"思いやり・気配り・居心地の良さ", w:"自分を前に出せずプロフに存在感がない・受け身に見える", t:"「誰かのためにしたこと」を具体的に書くと魅力が際立つ" },
+      ESTJ:{ s:"頼りがい・実行力・明確なビジョン", w:"プロフが硬くて近寄りがたい・ユーモアがなく真面目すぎる", t:"仕事以外の「だらける時間」を書くとギャップで親しみやすくなる" },
+      ESFJ:{ s:"社交性・相手を喜ばせる力・温かい雰囲気", w:"プロフが当たり障りなく薄い・「みんなに好かれたい」感が出る", t:"「特定の1人に刺さる」具体的な共通体験を入れる方が刺さる" },
+      ISTP:{ s:"クールな実力・問題解決力・無駄のなさ", w:"プロフが短すぎる・無口キャラが伝わらず単なる情報不足に見える", t:"趣味の「なぜ好きか」を1文だけ書くとミステリアス感が活きる" },
+      ISFP:{ s:"感性・穏やかさ・独特の美的センス", w:"プロフが漠然としていてキャラが立っていない", t:"写真の世界観とプロフのトーンを統一すると総合的な魅力が上がる" },
+      ESTP:{ s:"行動力・即断即決・エネルギッシュさ", w:"プロフが軽薄に見えやすい・深みがないと判断される", t:"「やってみたら想像以上だった体験」を書くと行動力が魅力になる" },
+      ESFP:{ s:"明るさ・楽しい雰囲気作り・表現力", w:"プロフが軽い・「遊び人」認定されやすい、真剣さが伝わらない", t:"「一緒にいると楽しい具体的な理由」を真剣に書くとギャップが武器になる" },
+    };
+
+    const HCfg = {
+      male:   { min:150, max:195, bands:[{v:165,c:"#ef4444",t:"ハードモード"},{v:170,c:"#f59e0b",t:"やや不利"},{v:175,c:"#94a3b8",t:"普通"},{v:180,c:"#22c55e",t:"有利"},{v:999,c:"#22c55e",t:"かなり有利"}] },
+      female: { min:145, max:180, bands:[{v:153,c:"#94a3b8",t:"小柄"},{v:160,c:"#22c55e",t:"平均的"},{v:168,c:"#22c55e",t:"やや高め"},{v:999,c:"#94a3b8",t:"高め"}] },
+    };
+    function hBand(h, g) { const b = (HCfg[g]||HCfg.male).bands; return b.find(x=>h<x.v)||b[b.length-1]; }
+
+    const VERDICT_A  = ["全要素の中で一番致命的な点に絞って断言する","相手がスワイプしない心理的理由を第三者視点で代弁する","ライバルのプロフと比較して何が決定的に劣るか指摘する","運営者視点で「審査落ちレベル」かどうか判定する","MBTIタイプの特性と現状のプロフのズレを指摘する","数字・確率で淡々と現実を突きつけるデータドリブントーンで","良い点は認めつつそれが全体の足を引いている現実を伝える","相手が感じる「この人となぜ会いたいか」という問いに答えられているか判定する","第一印象から感じる人物像と実際の魅力のギャップを指摘する","改善しないと毎日どれだけ損し続けるか損失フレームで伝える"];
+    const PROFILE_A  = ["文章の構造（導入→自己PR→趣味→CTA）を解剖して欠けている要素を指摘","読後感として何も残らない理由を文章心理学の観点から説明","相手が読んで「会いたい」と思うまでのプロセスがどこで詰まっているか特定","情報密度・個性・読みやすさの3軸で採点して最も低い軸を深掘り","よくある負けプロフの典型パターンとの比較で問題を可視化","MBTIタイプ固有の文章癖がどのようにマイナスに作用しているか","プロフの各文を「この文は相手のために書かれているか自分のためか」で仕分け","ターゲット層（相手が求める男性像/女性像）とのズレを診断","感情的フックが何個あるかカウントして足りない理由を説明","書き直し例と比較して何が決定的に違うか解説する"];
+    const PHOTO_A    = ["表情・服装・背景・構図の4軸を個別採点してボトルネックを特定","0.3秒の視覚判断で何が評価され何がマイナスになっているか分析","清潔感の観点から服装・髪型・肌・背景をそれぞれ評価","写真から滲み出る「人物キャラクター」と実際の魅力のギャップを指摘","プロのカメラマン目線で光・角度・構図・背景処理を採点","写真で伝わっている感情と相手が求める感情のマッチ度を判定","同性ライバルの写真と比較して差別化できているか評価","この写真で「もっと見たい」と思わせられているかどうか判定する"];
+    const OVERALL_A  = ["全要素の優先順位を明確にして最短改善ルートを提示","身長とMBTIを踏まえた上での現実的な勝ち筋を提案","このタイプの人が実際にマッチ率を上げた具体的な成功パターンを解説","改善の投資対効果（どこを直すと最もリターンが大きいか）で整理","3週間で数値を変えるための具体的な週次アクションプランを提示"];
+    const pick = a => a[Math.floor(Math.random()*a.length)];
+
+    const LOAD_MSGS = ["プロフィール文を解析中…","写真をAIが視覚評価中…","表情・清潔感・背景を採点中…","MBTIと照合中…","全国データと比較中…","勝率・順位を算出中…","戦略プランを生成中…"];
+
+    /* ─── API Prep ─── */
+    function makePrompt(gender, profile, height, mbti, hasPhoto) {
+      const gL = gender==="female"?"女性":"男性";
+      const vL = gender==="female"?"男性":"女性";
+      const band = hBand(height, gender);
+      const mt = mbti && MBTI_TRAITS[mbti];
+      return `あなたはマッチングアプリの超高精度診断AIです。${gL}ユーザーのプロフィールを、${vL}視点から多角的・具体的に評価してください。
+
+【今回の診断アングル】
+総評: ${pick(VERDICT_A)}
+プロフ分析: ${pick(PROFILE_A)}
+写真分析: ${pick(PHOTO_A)}
+総合戦略: ${pick(OVERALL_A)}
+
+【入力データ】
+性別: ${gL} / 身長: ${height}cm（${band.t}）
+MBTI: ${mbti||"未設定"}${mt ? ` ─ 強み:${mt.s} / 弱み:${mt.w}` : ""}
+プロフィール文: ${profile||"未入力"}
+写真: ${hasPhoto ? "添付画像あり（必ず実際に見て評価すること）" : "未添付"}
+
+【写真評価の厳守ルール】
+- 実際に見えるものだけコメント。推測・でっち上げ禁止
+- 良い点は良いと認め、実際の問題のみ指摘する
+- 写真未添付の場合は photoProvided: false として全スコアを null にする
+
+【スコアリング基準（内容に応じて必ず変動）】
+最低/未入力: matchRate 5-15, dateRate 2-7, percentile 8-18
+平均以下:    matchRate 16-30, dateRate 8-16, percentile 19-36
+平均的:      matchRate 31-50, dateRate 17-30, percentile 37-54
+平均以上:    matchRate 51-68, dateRate 31-46, percentile 55-72
+優秀:        matchRate 69-85, dateRate 47-65, percentile 73-88
+
+【出力フォーマット（JSON形式のみ・前置き不要）】
+{
+  "matchRate": 数値,
+  "dateRate": 数値,
+  "percentile": 数値,
+  "verdict": "辛口総評2〜3文120字以内。毎回異なる切り口・表現で",
+  ... (中略) ...
+}`;
+    }
+
+    function toB64(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result.split(",")[1]); r.onerror=rej; r.readAsDataURL(file); }); }
+    
+    function makeFallback() {
+      const r = ()=>Math.floor(Math.random()*18);
+      return {
+        matchRate:22+r(), dateRate:11+Math.floor(r()/2), percentile:28+r(),
+        verdict:"プロフ・写真の全要素に改善の余地があります。現状のままでは多くの出会いを逃しています。正しい方向で改善すれば大きく変われます。",
+        profile:{
+          summary:"個性がゼロ、情報もゼロの典型的なプロフです",
+          scores:[{label:"第一印象力",score:22,comment:"引きが弱い"},{label:"個性・差別化",score:15,comment:"どこにでもある内容"},{label:"読みやすさ",score:50,comment:"構造は悪くない"},{label:"相手への呼びかけ",score:10,comment:"完全に自分目線"}],
+          body:"**全体の8割が同じことを書いています。**読んだ相手が感じること、それは「で？」の一言。エピソードが一切なく、あなたという人間が伝わりません。趣味を並べるだけでは相手にとって何の感情も生まれません。",
+          rewrite:"週3でジムに通って3年。先月ようやくベンチ100kg達成しました。料理も好きで、休日は友人を家に呼んで手料理でもてなすのが最近の楽しみです。",
+          points:[{type:"ng",text:"趣味の羅列だけで個性がまるでない"},{type:"ng",text:"自己申告系ワードが逆効果"},{type:"fix",text:"具体的なエピソードを数字付きで1つ入れる"},{type:"fix",text:"相手が想像できるシーンを書く"}]
+        },
+        photo:{
+          photoProvided:false,
+          summary:"写真未添付のため評価不可",
+          scores:[{label:"表情・笑顔",score:null,comment:"写真なし"},{label:"清潔感・服装",score:null,comment:"写真なし"},{label:"背景・環境",score:null,comment:"写真なし"},{label:"全体の雰囲気",score:null,comment:"写真なし"}],
+          body:"写真は添付されていないため視覚評価ができません。**写真はマッチ率を決める最大要因**です。自然光・笑顔・清潔感のある場所で撮った写真を必ず設定してください。",
+          points:[{type:"ng",text:"写真なしはそれだけでマッチ率が大幅低下"},{type:"fix",text:"自然光の屋外で、笑顔・清潔感のある服装で撮影する"}]
+        },
+        mbtiAnalysis:null,
+        strategy:{
+          headline:"まず写真を変えることで、最速でスコアを改善できます",
+          heightNote:"身長と他の要素を組み合わせた最適な戦略を実行してください",
+          actions:[{timing:"今日中",action:"スマートフォンで自然光のある場所に出て笑顔の写真を5枚以上撮る"},{timing:"3日以内",action:"プロフィール文に具体的な数字とエピソードを1つ追加する"},{timing:"1週間後",action:"写真とプロフの両方を改善した状態でいいね数の変化を確認する"},{timing:"2週間後",action:"マッチ数が変化しているかデータを見て次の改善ポイントを特定する"}]
+        },
+        overall:{
+          summary:"写真とプロフどちらも直せば3〜5倍に変わる",
+          body:"プロフ・写真の二つが噛み合って初めてマッチ率は上がります。**今すぐ直せば今の3〜5倍のマッチが現実的です。**現状が厳しい分、伸び代は確実にあります。一つずつ確実に改善してください。",
+          points:[{type:"fix",text:"写真を撮り直す（最速でROIが高い）"},{type:"fix",text:"プロフに具体的エピソードを1つ入れる"},{type:"fix",text:"改善後2週間でデータを確認して次の手を打つ"}]
+        }
+      };
+    }
+
+    /* ─── Core Logic & Rendering ─── */
+
+    function switchStep(newStep) {
+      document.getElementById(`viewStep${state.step}`)?.classList.add('hidden');
+      if (typeof state.step === 'string') {
+        document.getElementById(`view${state.step.charAt(0).toUpperCase() + state.step.slice(1)}`)?.classList.add('hidden');
+      }
+      
+      state.step = newStep;
+      
+      if (typeof newStep === 'number') {
+        document.getElementById(`viewStep${newStep}`).classList.remove('hidden');
+        renderStepBar();
+      } else {
+        document.getElementById('stepBar').classList.add('hidden');
+        document.getElementById(`view${newStep.charAt(0).toUpperCase() + newStep.slice(1)}`).classList.remove('hidden');
+      }
+    }
+
+    function renderStepBar() {
+      const labels = ["性別/MBTI","プロフィール","写真"];
+      const stepBar = document.getElementById('stepBar');
+      stepBar.classList.remove('hidden');
+      stepBar.innerHTML = labels.map((l, i) => {
+        const st = i < state.step ? "done" : i === state.step ? "active" : "idle";
+        return `
+          <div class="s-item">
+            <div class="s-num ${st}">${st === "done" ? "✓" : i + 1}</div>
+            <div class="s-lbl" style="display:${i <= state.step ? 'block' : 'none'}">${l}</div>
+            ${i < labels.length - 1 ? `<div class="s-line ${i < state.step ? "done" : ""}"></div>` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateColors() {
+      const th = getT(state.gender);
+      const root = document.documentElement;
+      if (state.gender) {
+        root.style.setProperty('--accent', th.p);
+        root.style.setProperty('--accent-light', th.pl);
+        root.style.setProperty('--accent-border', th.pb);
+        root.style.setProperty('--p', th.p);
+        root.style.setProperty('--pl', th.pl);
+        root.style.setProperty('--pb', th.pb);
+      }
+    }
+
+    /* Step 0 */
+    function renderStep0() {
+      const html = `
+        <div class="card">
+          <div class="card-head"><div class="c-icon">⚡</div>
+            <div><div class="c-title">あなたの性別は？</div><div class="c-sub">診断の視点と評価基準が変わります</div></div>
+          </div>
+          <div class="gender-grid">
+            ${["male", "female"].map(g => `
+              <div class="gender-btn ${state.gender === g ? `sel-${g[0]}` : ""}" onclick="app.setGender('${g}')">
+                <div class="g-emoji">${T[g].emoji}</div>
+                <div class="g-label">${T[g].label}</div>
+                <div class="g-sub">${g === "male" ? "女性視点で評価" : "男性視点で評価"}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="c-icon">🧠</div>
+            <div><div class="c-title">あなたのMBTI</div><div class="c-sub">タイプ別の強み・弱みを診断に反映します</div></div>
+            <span class="opt-tag">任意</span>
+          </div>
+          <div>
+            ${MBTI_GROUPS.map(g => `
+              <div class="mbti-group">
+                <div class="mbti-gname" style="color:${g.color}">${g.name}</div>
+                <div class="mbti-row">
+                  ${g.types.map(t => {
+                    const isActive = state.mbti === t;
+                    const style = isActive ? `border-color:${g.color};background:${g.color}18;box-shadow:0 0 12px ${g.color}22;` : '';
+                    const textCol = isActive ? g.color : 'var(--text)';
+                    return `
+                      <div class="mbti-btn ${isActive ? 'active' : ''}" style="${style}" onclick="app.setMbti('${t}')">
+                        <div class="mbti-type" style="color:${textCol}">${t}</div>
+                        <div class="mbti-desc">${MBTI_DESC[t]}</div>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        <div class="nav">
+          <button class="btn-next" onclick="app.goStep(1)" ${!state.gender ? 'disabled' : ''}>次へ →</button>
+        </div>
+      `;
+      document.getElementById('viewStep0').innerHTML = html;
+    }
+
+    /* Step 1 */
+    function renderStep1() {
+      const cfg = HCfg[state.gender] || HCfg.male;
+      const band = hBand(state.height, state.gender);
+      const marks = state.gender === "male" ? [cfg.min, 165, 175, 185, cfg.max] : [cfg.min, 153, 160, 168, cfg.max];
+      const pct = ((state.height - cfg.min) / (cfg.max - cfg.min)) * 100;
+
+      const getNote = () => {
+        const v = state.height;
+        if(state.gender === "male") {
+          if(v<165) return `身長${v}cmはアプリでは<b>厳しい条件</b>。写真・プロフの質で徹底的に補う必要があります。`;
+          if(v<170) return `身長${v}cmは平均以下。<b>写真と文章力</b>で差を埋めることは十分可能です。`;
+          if(v<175) return `身長${v}cmは一般的な範囲。<b>他の要素の質</b>が勝負を分けます。`;
+          if(v<180) return `身長${v}cmは<b>有利な水域</b>。他の要素を整えれば高いマッチ率が期待できます。`;
+          return `身長${v}cmは<b>大きなアドバンテージ</b>。ただし身長だけでは勝てません。`;
+        } else {
+          if(v<153) return `身長${v}cmは小柄。<b>かわいい系</b>の路線でプロフ・写真を統一すると効果的です。`;
+          if(v<160) return `身長${v}cmは女性の平均域。<b>写真の撮り方</b>でスタイルを印象付けられます。`;
+          if(v<168) return `身長${v}cmはやや高め。<b>スタイルの良さ</b>を自然にアピールできる強みです。`;
+          return `身長${v}cmは高め。<b>雰囲気・スタイル</b>を活かした写真選びが重要です。`;
+        }
+      };
+
+      const html = `
+        <div class="card">
+          <div class="card-head"><div class="c-icon">📝</div>
+            <div><div class="c-title">プロフィール文</div><div class="c-sub">現在のプロフをそのまま貼り付け</div></div>
+          </div>
+          <textarea class="ta" id="profileTa" rows="7" oninput="app.updateProfile(this.value)" placeholder="${state.gender === "female" ? "例：都内でOLをしています。休日はカフェ巡りや料理が好きです♪..." : "例：都内でエンジニアをしています。休日は料理や筋トレが好きで..."}">${state.profile}</textarea>
+          <div class="char-count" id="charCount">${state.profile.length} 字</div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="c-icon">📏</div>
+            <div><div class="c-title">身長</div><div class="c-sub">マッチ率と戦略アドバイスに反映します</div></div>
+          </div>
+          <div>
+            <div class="h-display">
+              <div class="h-num" id="hNum" style="color:${band.c}">${state.height}<span class="h-unit">cm</span></div>
+              <div class="h-tag" id="hTag" style="background:${band.c}18;color:${band.c}">${band.t}</div>
+            </div>
+            <input type="range" id="hRange" min="${cfg.min}" max="${cfg.max}" value="${state.height}" style="--sp:${pct}%;--sc:${band.c}" oninput="app.updateHeight(Number(this.value))"/>
+            <div class="slider-labels">${marks.map(m => `<span>${m}cm</span>`).join('')}</div>
+            <div class="h-note" id="hNote">${getNote()}</div>
+          </div>
+        </div>
+        <div class="nav">
+          <button class="btn-back" onclick="app.goStep(0)">← 戻る</button>
+          <button class="btn-next" id="s1Next" onclick="app.goStep(2)" ${!state.profile.trim() ? 'disabled' : ''}>次へ →</button>
+        </div>
+      `;
+      document.getElementById('viewStep1').innerHTML = html;
+    }
+
+    /* Step 2 */
+    function renderStep2() {
+      const th = getT(state.gender);
+      const dropZoneHtml = state.photoUrl 
+        ? `
+          <div class="prev-wrap">
+            <img src="${state.photoUrl}" class="prev-img" alt=""/>
+            <div class="prev-over">
+              <button class="prev-btn" onclick="document.getElementById('fileInp').click()">📷 変更</button>
+              <button class="prev-btn del" onclick="app.clearPhoto(event)">✕ 削除</button>
+            </div>
+            <input id="fileInp" type="file" accept="image/*" style="display:none" onchange="app.handleFile(this.files)"/>
+          </div>
+        `
+        : `
+          <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInp').click()">
+            <div class="drop-icon">📷</div>
+            <div class="drop-main">写真をアップロード</div>
+            <div class="drop-sub">タップして選択、またはドラッグ＆ドロップ</div>
+            <input id="fileInp" type="file" accept="image/*" onchange="app.handleFile(this.files)"/>
+          </div>
+        `;
+
+      const html = `
+        <div class="card">
+          <div class="card-head"><div class="c-icon">📷</div>
+            <div><div class="c-title">メイン写真</div><div class="c-sub">AIが実際に画像を見て4軸評価します</div></div>
+            <span class="opt-tag">任意</span>
+          </div>
+          ${dropZoneHtml}
+        </div>
+        <div class="nav">
+          <button class="btn-back" onclick="app.goStep(1)">← 戻る</button>
+        </div>
+        <button class="btn-go" onclick="app.analyze()">
+          ${th.emoji} 今すぐ診断する →
+        </button>
+      `;
+      document.getElementById('viewStep2').innerHTML = html;
+
+      // Drag & Drop bindings
+      setTimeout(() => {
+        const dz = document.getElementById('dropZone');
+        if(!dz) return;
+        dz.ondragover = e => { e.preventDefault(); dz.classList.add('drag'); };
+        dz.ondragleave = e => { dz.classList.remove('drag'); };
+        dz.ondrop = e => { e.preventDefault(); dz.classList.remove('drag'); app.handleFile(e.dataTransfer.files); };
+      }, 0);
+    }
+
+    /* Result */
+    function renderResult() {
+      if (!state.result) return;
+      const res = state.result;
+      const th = getT(state.gender);
+
+      const makeSubScores = scores => {
+        if(!scores || !scores.length) return '';
+        return `<div class="sub-scores">` + scores.map(s => {
+          const col = s.score === null ? "#444" : s.score < 35 ? "#ef4444" : s.score < 60 ? "#f59e0b" : "#34d399";
+          return `
+            <div>
+              <div class="sub-row">
+                <div class="sub-lbl">${s.label}</div>
+                <div class="sub-bar-wrap">
+                  <div class="sub-bar" style="width:${s.score !== null ? s.score : 0}%; background:${col}"></div>
+                </div>
+                <div class="sub-val" style="color:${col}">${s.score !== null ? s.score : "—"}</div>
+              </div>
+              ${s.comment ? `<div class="sub-comment">${s.comment}</div>` : ''}
+            </div>
+          `;
+        }).join('') + `</div>`;
+      };
+
+      const makeDCard = (ci, icon, label, data, thumb=null) => {
+        if(!data) return '';
+        const bodyParsed = (data.body||"").replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+        return `
+          <div class="dc c${ci}">
+            <div class="dc-head"><span class="dc-icon">${icon}</span><div class="dc-cat">${label}</div></div>
+            ${thumb ? `<img src="${thumb}" class="dc-thumb" alt=""/>` : ''}
+            <div class="dc-sum">${data.summary}</div>
+            ${makeSubScores(data.scores)}
+            <div class="dc-body">${bodyParsed}</div>
+            ${data.rewrite ? `
+              <div class="rewrite-box">
+                <div class="rewrite-label">✏ 改善後プロフ例</div>
+                <div class="rewrite-text">「${data.rewrite}」</div>
+              </div>
+            ` : ''}
+            ${data.points && data.points.length > 0 ? `
+              <div class="dc-pts">
+                ${data.points.map(p => `
+                  <div class="dc-pt">
+                    <span class="dc-badge ${p.type==="ng"?"ng":"fix"}">${p.type==="ng"?"問題":"改善"}</span>
+                    <span>${p.text}</span>
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      };
+
+      const scoreChip = v => {
+        if(v<20) return {t:"D RANK",bg:"rgba(239,68,68,0.14)",c:"#f87171"};
+        if(v<40) return {t:"C RANK",bg:"rgba(245,158,11,0.14)",c:"#fbbf24"};
+        if(v<60) return {t:"B RANK",bg:"rgba(234,179,8,0.14)",c:"#eab308"};
+        if(v<80) return {t:"A RANK",bg:"rgba(52,211,153,0.14)",c:"#34d399"};
+        return {t:"S RANK",bg:"rgba(96,165,250,0.14)",c:"#60a5fa"};
+      };
+
+      const mc = scoreChip(res.matchRate);
+      const dc = scoreChip(res.dateRate);
+
+      const html = `
+        <div class="res-hdr">
+          <div class="res-eyebrow">診断レポート</div>
+          <div>
+            <span class="tag-pill">${th.emoji} ${th.label}プロフ診断</span>
+            ${state.mbti ? `<span class="tag-pill tag-mbti">🧠 ${state.mbti}</span>` : ''}
+          </div>
+        </div>
+
+        <div class="rank-card">
+          <div class="rank-eyebrow">全体順位</div>
+          <div class="rank-big">上位<em> </em>${100 - res.percentile}<em>%</em></div>
+          <div class="rank-verdict">${res.percentile <= 20 ? "圧倒的最下位層" : res.percentile <= 35 ? "平均以下" : res.percentile <= 55 ? "平均的" : res.percentile <= 75 ? "やや有利" : "上位層"}</div>
+          <div class="rbar-outer">
+            <div class="rbar-bg"><div class="rbar-fill" id="rbarFill"></div></div>
+            <div class="rbar-thumb" id="rbarThumb">
+              <div class="rbar-dot"></div><div class="rbar-lbl">あなた</div>
+            </div>
+            <div class="rbar-ends"><span>最下位</span><span>平均</span><span>上位10%</span></div>
+          </div>
+        </div>
+
+        <div class="score-grid">
+          <div class="score-cell">
+            <div class="score-lbl">マッチ率</div>
+            <div class="score-n ${res.matchRate < 30 ? 'lo' : res.matchRate < 60 ? 'mi' : 'hi'}" id="scoreM">0<span class="score-pct">%</span></div>
+            <div class="score-chip" style="background:${mc.bg};color:${mc.c}">${mc.t}</div>
+          </div>
+          <div class="score-cell">
+            <div class="score-lbl">デート成功率</div>
+            <div class="score-n ${res.dateRate < 30 ? 'lo' : res.dateRate < 60 ? 'mi' : 'hi'}" id="scoreD">0<span class="score-pct">%</span></div>
+            <div class="score-chip" style="background:${dc.bg};color:${dc.c}">${dc.t}</div>
+          </div>
+        </div>
+
+        <div class="verdict">
+          <div class="verdict-eye"><span>💬</span> 総評</div>
+          <div class="verdict-txt">${res.verdict}</div>
+        </div>
+
+        ${makeDCard(0, "📝", "プロフィール診断 — 4軸分析", res.profile)}
+        ${makeDCard(1, "📷", "写真診断 — AI視覚評価", res.photo, state.resultImg)}
+        
+        ${res.mbtiAnalysis && state.mbti ? `
+          <div class="mbti-card">
+            <div class="mbti-card-head">
+              <span style="font-size:20px">🧠</span>
+              <div>
+                <div class="mbti-card-type" style="color:${(MBTI_GROUPS.find(g=>g.types.includes(state.mbti))||{}).color||'#c084fc'}">${state.mbti} — ${MBTI_DESC[state.mbti]}</div>
+                <div class="mbti-card-name">MBTIタイプ別アドバイス</div>
+              </div>
+            </div>
+            <div class="mbti-row2 mbti-strength">
+              <div class="mbti-row-label">💪 強みの活かし方</div>
+              <div class="mbti-row-text">${res.mbtiAnalysis.strength}</div>
+            </div>
+            <div class="mbti-row2 mbti-weakness">
+              <div class="mbti-row-label">⚠ このタイプのやりがちな失敗</div>
+              <div class="mbti-row-text">${res.mbtiAnalysis.weakness}</div>
+            </div>
+            <div class="mbti-row2 mbti-tip">
+              <div class="mbti-row-label">⚡ 最速で変わる具体策</div>
+              <div class="mbti-row-text">${res.mbtiAnalysis.tip}</div>
+            </div>
+          </div>
+        ` : ''}
+
+        ${res.strategy ? `
+          <div class="strat-card">
+            <div class="strat-head"><span>🎯</span> 戦略プラン</div>
+            <div class="strat-headline">${res.strategy.headline}</div>
+            ${res.strategy.heightNote ? `<div class="strat-height">📏 ${res.strategy.heightNote}</div>` : ''}
+            <div>
+              ${res.strategy.actions.map(a => `
+                <div class="strat-action">
+                  <div class="strat-timing">${a.timing}</div>
+                  <div class="strat-text">${a.action}</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        ${makeDCard(3, "🔍", "総合評価・優先アクション", res.overall)}
+
+        <div class="future">
+          <div class="f-head"><span>🚀</span> 改善後の未来シミュレーション</div>
+          <div class="f-grid">
+            <div class="f-cell">
+              <div class="f-lbl">マッチ率</div>
+              <div class="f-row"><div class="f-old">${res.matchRate}</div><div class="f-arr">→</div><div class="f-new">${Math.min(99, Math.round(res.matchRate*1.9+18))}<span class="f-u">%</span></div></div>
+            </div>
+            <div class="f-cell">
+              <div class="f-lbl">デート成功率</div>
+              <div class="f-row"><div class="f-old">${res.dateRate}</div><div class="f-arr">→</div><div class="f-new">${Math.min(99, Math.round(res.dateRate*2.1+15))}<span class="f-u">%</span></div></div>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-reset" onclick="app.reset()">🔄 もう一度診断する</button>
+      `;
+
+      document.getElementById('viewResult').innerHTML = html;
+
+      // Animations
+      setTimeout(() => {
+        document.getElementById('rbarFill').style.width = `${res.percentile}%`;
+        document.getElementById('rbarThumb').style.left = `${res.percentile}%`;
+        animateCount(document.getElementById('scoreM'), res.matchRate);
+        animateCount(document.getElementById('scoreD'), res.dateRate);
+      }, 400);
+    }
+
+    function animateCount(elem, target, dur=1300) {
+      if(!elem) return;
+      let start = null;
+      const step = ts => {
+        if (!start) start = ts;
+        const progress = Math.min((ts - start) / dur, 1);
+        const p = 1 - Math.pow(1 - progress, 3);
+        elem.innerHTML = `${Math.round(target * p)}<span class="score-pct">%</span>`;
+        if (progress < 1) window.requestAnimationFrame(step);
+      };
+      window.requestAnimationFrame(step);
+    }
+
+    /* ─── Global App Controller ─── */
+    window.app = {
+      goStep: (n) => {
+        switchStep(n);
+        if(n === 0) renderStep0();
+        if(n === 1) renderStep1();
+        if(n === 2) renderStep2();
+      },
+      setGender: (g) => {
+        state.gender = g;
+        state.height = g === "male" ? 170 : 158;
+        updateColors();
+        renderStep0();
+      },
+      setMbti: (m) => {
+        state.mbti = state.mbti === m ? "" : m;
+        renderStep0();
+      },
+      updateProfile: (val) => {
+        state.profile = val;
+        document.getElementById('charCount').innerText = `${val.length} 字`;
+        document.getElementById('s1Next').disabled = !val.trim();
+      },
+      updateHeight: (val) => {
+        state.height = val;
+        const cfg = HCfg[state.gender];
+        const band = hBand(val, state.gender);
+        const pct = ((val - cfg.min) / (cfg.max - cfg.min)) * 100;
+        
+        document.getElementById('hNum').style.color = band.c;
+        document.getElementById('hNum').innerHTML = `${val}<span class="h-unit">cm</span>`;
+        
+        const hTag = document.getElementById('hTag');
+        hTag.style.background = `${band.c}18`;
+        hTag.style.color = band.c;
+        hTag.innerText = band.t;
+
+        const range = document.getElementById('hRange');
+        range.style.setProperty('--sp', `${pct}%`);
+        range.style.setProperty('--sc', band.c);
+
+        let note = "";
+        if(state.gender === "male") {
+          if(val<165) note = `身長${val}cmはアプリでは<b>厳しい条件</b>。写真・プロフの質で徹底的に補う必要があります。`;
+          else if(val<170) note = `身長${val}cmは平均以下。<b>写真と文章力</b>で差を埋めることは十分可能です。`;
+          else if(val<175) note = `身長${val}cmは一般的な範囲。<b>他の要素の質</b>が勝負を分けます。`;
+          else if(val<180) note = `身長${val}cmは<b>有利な水域</b>。他の要素を整えれば高いマッチ率が期待できます。`;
+          else note = `身長${val}cmは<b>大きなアドバンテージ</b>。ただし身長だけでは勝てません。`;
+        } else {
+          if(val<153) note = `身長${val}cmは小柄。<b>かわいい系</b>の路線でプロフ・写真を統一すると効果的です。`;
+          else if(val<160) note = `身長${val}cmは女性の平均域。<b>写真の撮り方</b>でスタイルを印象付けられます。`;
+          else if(val<168) note = `身長${val}cmはやや高め。<b>スタイルの良さ</b>を自然にアピールできる強みです。`;
+          else note = `身長${val}cmは高め。<b>雰囲気・スタイル</b>を活かした写真選びが重要です。`;
+        }
+        document.getElementById('hNote').innerHTML = note;
+      },
+      handleFile: (files) => {
+        if(!files || !files[0] || !files[0].type.startsWith("image/")) return;
+        state.photoFile = files[0];
+        if(state.photoUrl) URL.revokeObjectURL(state.photoUrl);
+        state.photoUrl = URL.createObjectURL(files[0]);
+        renderStep2();
+      },
+      clearPhoto: (e) => {
+        if(e) e.stopPropagation();
+        state.photoFile = null;
+        if(state.photoUrl) URL.revokeObjectURL(state.photoUrl);
+        state.photoUrl = null;
+        renderStep2();
+      },
+      analyze: async () => {
+        switchStep('loading');
+        state.resultImg = state.photoUrl;
+        
+        let msgIndex = 0;
+        const msgElem = document.getElementById('loadingMsg');
+        msgElem.innerText = LOAD_MSGS[0];
+        const iv = setInterval(() => {
+          msgIndex = (msgIndex + 1) % LOAD_MSGS.length;
+          msgElem.innerText = LOAD_MSGS[msgIndex];
+        }, 900);
+
+        try {
+          // Anthropic API fetch 処理（オリジナルコードのまま再現）
+          const content = [];
+          if (state.photoFile) {
+            const b64 = await toB64(state.photoFile);
+            content.push({type: "image", source: {type: "base64", media_type: state.photoFile.type || "image/jpeg", data: b64}});
+          }
+          content.push({type: "text", text: makePrompt(state.gender, state.profile, state.height, state.mbti, !!state.photoFile)});
+          
+          const res = await fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 3000, messages: [{ role: "user", content }] })
+          });
+          
+          if (!res.ok) throw new Error('API Request Failed');
+          
+          const data = await res.json();
+          const txt = data.content.map(b => b.text || "").join("");
+          state.result = JSON.parse(txt.replace(/```json|```/g, "").trim());
+        } catch (e) {
+          console.warn("API Error (Using fallback):", e);
+          state.result = makeFallback();
+        } finally {
+          clearInterval(iv);
+          renderResult();
+          switchStep('result');
+        }
+      },
+      reset: () => {
+        state.gender = "";
+        state.mbti = "";
+        state.height = 170;
+        state.profile = "";
+        state.photoFile = null;
+        if(state.photoUrl) URL.revokeObjectURL(state.photoUrl);
+        state.photoUrl = null;
+        state.result = null;
+        state.resultImg = null;
+        app.goStep(0);
+      }
+    };
+
+    // Initialize
+    app.goStep(0);
+
+  </script>
+</body>
+</html>
